@@ -1,0 +1,180 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    {% include 'bootstrap.html' %}
+    {% include 'nav.html' %}
+</head>
+<body>
+    <div class="container-fluid">
+    <form action="{% url 'PhysicsLab:select' %}" method="post">
+        {% csrf_token %}
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col" colspan="3" rowspan="2"></th>
+                <th class="text-center" scope="col" colspan="21"><h4>选课余额</h4></th>
+            </tr>
+            <tr>
+                {% for i in week_list %}
+                    <th class="text-center" scope="col" colspan="3">周{{ i }}</th>
+                {% endfor %}
+            </tr>
+            <tr>
+                <th scope="col">实验名称</th>
+                <th scope="col">实验地点</th>
+                <th scope="col">许可实验人数</th>
+                {% for i in week_list %}
+                    <th class="text-center">上午</th>
+                    <th class="text-center">下午</th>
+                    <th class="text-center">晚上</th>
+                {% endfor %}
+            </tr>
+            </thead>
+            <tbody>
+                {% for lab in lab_list %}
+                    <tr>
+                        <td>{{ lab.lab_name }}</td>
+                        <td class="text-center">{{ lab.lab_place }}</td>
+                        <td class="text-center">{{ lab.lab_capacity }}</td>
+                        {% for lab_item in lab.labitem_set.all %}
+                            <td class="text-center">
+                                <input type="radio" class="form-check-input position-static" name="course_id" value="{{ lab_item.course_id }}" id="{{ lab_item.course_id }}"
+                                {% if not lab_item.is_available %}
+                                       disabled
+                                {% endif %}
+                                {% if selected_lab == lab_item.course_id %} checked {% endif %}
+                                >
+                            <br>
+                                {% if not lab_item.is_available %}
+                                    <div class="badge badge-pill badge-secondary">剩余0</div>
+                                {% elif is_drawn %}
+                                    <div class="badge badge-pill badge-primary">剩余{{ lab_item.remaining_capacity }}</div>
+                                {% else %}
+                                    <div class="badge badge-pill badge-primary">已选{{ lab_item.willing_user.count}}</div>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        <tfoot><tr>
+            <td class="text-right" colspan="24">
+                <div class="form-check form-check-inline">
+                    <input type="radio" class="form-check-input" name="course_id" value="0" id="cancel"
+                    {% if selected_lab == 0 %} checked {% endif %}>
+                    <label class="form-check-label" for="cancel">取消本周选课</label>
+                </div>
+                <button type="submit" class="btn btn-primary">提交</button>
+            </td>
+        </tr></tfoot>
+        </table>
+        <br><br>
+    <div class="accordion" id="course-accordion">
+        <div class="card">
+            <div class="card-header" id="selected-course-header">
+                <h2 class="mb-0">
+                    <button class="btn btn-link btn-block text-left" type="button"
+                            data-toggle="collapse" data-target="#selected-course-collapse"
+                            aria-expanded="true" aria-controls="selected-course-collapse">
+                        学生{{ user.username }}已选择的课程
+                    </button>
+                </h2>
+            </div>
+            <div id="selected-course-collapse" class="collapse" aria-labelledby="selected-course-header" data-parent="#course-accordion">
+                <div class="card-body">
+                <table class="table">
+                    <tbody>
+                    <tr>
+                        <td scope="col" class="text-center">周数</td>
+                        <td scope="col" class="text-center">实验名称</td>
+                        <td scope="col" class="text-center">实验时间</td>
+                        <td scope="col" class="text-center">实验地点</td>
+                    </tr>
+                    {% for lab_item in all_selected_lab %}
+                        <tr>
+                        <td class="text-center">{{ lab_item.lab.week }}</td>
+                        <td class="text-center">{{ lab_item.lab.lab_name }}</td>
+                        <td class="text-center">周{{ lab_item.weekday }}{{ lab_item.time }}</td>
+                        <td class="text-center">{{ lab_item.lab.lab_place }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header" id="willing-course-header">
+                <h2 class="mb-0">
+                    <button class="btn btn-link btn-block text-left" type="button"
+                            data-toggle="collapse" data-target="#willing-course-collapse"
+                            aria-expanded="true" aria-controls="willing-course-collapse">
+                        学生{{ user.username }}还未抽签课程
+                    </button>
+                </h2>
+            </div>
+            <div id="willing-course-collapse" class="collapse" aria-labelledby="willing-course-header" data-parent="#course-accordion">
+                <div class="card-body">
+                <table class="table">
+                    <tbody>
+                    <tr>
+                        <td scope="col" class="text-center">周数</td>
+                        <td scope="col" class="text-center">实验名称</td>
+                        <td scope="col" class="text-center">实验时间</td>
+                        <td scope="col" class="text-center">实验地点</td>
+                    </tr>
+                    {% for lab_item in all_willing_lab %}
+                        <tr>
+                        <td class="text-center">{{ lab_item.lab.week }}</td>
+                        <td class="text-center">{{ lab_item.lab.lab_name }}</td>
+                        <td class="text-center">周{{ lab_item.weekday }}{{ lab_item.time }}</td>
+                        <td class="text-center">{{ lab_item.lab.lab_place }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header" id="wl-course-header">
+                <h2 class="mb-0">
+                    <button class="btn btn-link btn-block text-left" type="button"
+                            data-toggle="collapse" data-target="#wl-course-collapse"
+                            aria-expanded="true" aria-controls="wl-course-collapse">
+                        学生{{ user.username }}在waiting list中课程
+                    </button>
+                </h2>
+            </div>
+            <div id="wl-course-collapse" class="collapse" aria-labelledby="wl-course-header" data-parent="#course-accordion">
+                <div class="card-body">
+                <table class="table">
+                    <tbody>
+                    <tr>
+                        <td scope="col" class="text-center">周数</td>
+                        <td scope="col" class="text-center">实验名称</td>
+                        <td scope="col" class="text-center">实验时间</td>
+                        <td scope="col" class="text-center">实验地点</td>
+                        <td scope="col" class="text-center">队列位置</td>
+                    </tr>
+                    {% for wl_person in all_wl_lab %}
+                        <tr>
+                        <td class="text-center">{{ wl_person.lab_item.lab.week }}</td>
+                        <td class="text-center">{{ wl_person.lab_item.lab.lab_name }}</td>
+                        <td class="text-center">周{{ wl_person.lab_item.weekday }}{{ wl_person.lab_item.time }}</td>
+                        <td class="text-center">{{ lab_item.lab.lab_place }}</td>
+                        <td class="text-center">{{ wl_person.order_in_waiting_list }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    </form>
+    </div>
+</body>
+</html>

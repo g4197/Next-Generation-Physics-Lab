@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    {% include 'bootstrap.html' %}
+    {% include 'nav.html' %}
+</head>
+<body>
+<div class="container">
+    <br><br>
+    <div class="alert alert-danger" role="alert">{{ alert_placeholder }}</div>
+    <button class="btn btn-primary" onclick="javascript:history.go(-1);">返回上一页</button>
+</div>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    {% include 'bootstrap.html' %}
+    {% include 'nav.html' %}
+</head>
+<body>
+    <div class="container">
+    <br><form action="{% url 'PhysicsLab:admin_modify_lab' %}" method="get">
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text" id="before-week">周数</span>
+            </div>
+            <input type="text" class="form-control" name="week" aria-describedby="before-week">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="submit">确定</button>
+            </div>
+        </div>
+    </form>
+    </div>
+    <div class="container-fluid">
+        <h3 class="text-center">请勾选希望开启的实验</h3><br>
+    <form action="{% url 'PhysicsLab:submit_admin_modify' %}" method="post">
+        <input type="number" name="week" value="{{ cur_modify_week }}" hidden>
+        {% csrf_token %}
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col" colspan="3" rowspan="2"></th>
+                <th class="text-center" scope="col" colspan="21"><h4>选课余额</h4></th>
+            </tr>
+            <tr>
+                {% for i in week_list %}
+                    <th class="text-center" scope="col" colspan="3">周{{ i }}</th>
+                {% endfor %}
+            </tr>
+            <tr>
+                <th scope="col" rowspan="3">实验名称</th>
+                <th scope="col" rowspan="3">实验地点</th>
+                <th scope="col" rowspan="3">许可实验人数</th>
+                {% for i in week_list %}
+                    <th>上午</th>
+                    <th>下午</th>
+                    <th>晚上</th>
+                {% endfor %}
+            </tr>
+            </thead>
+            <tbody>
+                {% for lab in lab_list %}
+                    <tr>
+                        <td>{{ lab.lab_name }}</td>
+                        <td>{{ lab.lab_place }}</td>
+                        <td>{{ lab.lab_capacity }}</td>
+                        {% for lab_item in lab.labitem_set.all %}
+                            <td>
+                            <div class="form-check">
+                                <input class="form-check-input position-static" id="{{ lab_item.course_id }}"
+                                 name="course_id" type="checkbox" value="{{ lab_item.course_id }}"
+                                {% if lab_item.is_available %} checked {% endif %}>
+                            </div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        <tfoot><tr>
+            <td class="text-right" colspan="24">
+                <button type="submit" class="btn btn-primary">修改</button>
+            </td>
+        </tr></tfoot>
+        </table>
+    </form>
+    </div>
+</body>
+</html>

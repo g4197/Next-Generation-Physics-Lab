@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    {% include 'bootstrap.html' %}
+    {% include 'nav.html' %}
+</head>
+<body>
+    <div class="container">
+    <br>
+    <form action="{% url 'PhysicsLab:admin_remove_lab' %}" method="get">
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text" id="before-week">实验名</span>
+            </div>
+            <input type="text" class="form-control" name="name" aria-describedby="before-week">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="submit">搜索</button>
+            </div>
+        </div>
+    </form>
+    {% if lab_list %}
+        <h4>点击按钮即可删除实验</h4>
+        <h3 class="text-center">符合条件的实验为</h3>
+        <div class="list-group">
+            {% for lab in lab_list %}
+                <button type="button" onclick="removeLab({{ lab.pk }})" class="list-group-item list-group-item-action">
+                {{ lab.lab_name }}</button>
+            {% endfor %}
+        </div>
+    {% endif %}
+    </div>
+    <script>
+        function removeLab(lab_pk) {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '{% url "PhysicsLab:submit_admin_remove" %}';
+            const hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.name = 'lab_pk';
+            hiddenField.value = lab_pk;
+            form.appendChild(hiddenField);
+            document.body.appendChild(form);
+            form.submit();
+            location.reload();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<title>{{ window_title }}-物理选课系统</title>
+
+<nav class="navbar navbar-expand-lg sticky-top" role="navigation" style="background-color: lightblue">
+    <a class="navbar-brand" href="#">
+        {{ window_title }}-物理选课系统
+    </a>
+    <div class="collapse navbar-collapse">
+    <ul class="nav navbar-nav ml-auto mt-2 mt-lg-0">
+        {% if perms.PhysicsLab.add_lab %}
+            <li class="nav-item"><a class= "nav-link" href="{% url 'PhysicsLab:admin_add_lab' %}">添加实验</a></li>
+            <li class="nav-item"><a class= "nav-link" href="{% url 'PhysicsLab:admin_modify_lab' %}">修改实验</a></li>
+            <li class="nav-item"><a class= "nav-link" href="{% url 'PhysicsLab:admin_remove_lab' %}">删除实验</a></li>
+        {% endif %}
+        <li class="nav-item"><a class= "nav-link" href="{% url 'PhysicsLab:index' %}">主页</a></li>
+        {% if not user.is_authenticated %}
+            <li class="nav-item"><a class= "nav-link" href="{% url 'PhysicsLab:lab_login' %}">登录</a></li>
+            <li class="nav-item"><a class= "nav-link" href="{% url 'PhysicsLab:student_register' %}">注册</a></li>
+        {% else %}
+            <li class="nav-item"><a class= "nav-link nav-link-secondary" href="#">欢迎用户{{ user.username }}</a></li>
+            <li class="nav-item"><a class= "nav-link" href="{% url 'PhysicsLab:lab_logout' %}">退出</a></li>
+        {% endif %}
+    </ul>
+    </div>
+</nav>

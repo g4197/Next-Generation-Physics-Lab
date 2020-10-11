@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    {% include 'bootstrap.html' %}
+    {% include 'nav.html' %}
+</head>
+<body><div class="container">
+    <br><br>
+    <form action="{% url 'PhysicsLab:submit_lab_login' %}" method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="username">学号</label>
+            <input type="text" class="form-control" name="username">
+        </div>
+        <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" class="form-control" name="password">
+        </div>
+        <button type="submit" class="btn btn-primary">登录</button>
+    </form>
+</div></body>
+</html>

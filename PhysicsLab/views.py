@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.db import models
 from django.db.models import Max
-from .models import GlobalVariable, Lab, LabItem, WaitingListUser
+from .models import WeekStatus, Lab, LabWeek, LabItem, WaitingListUser
 import datetime
 
 
@@ -100,16 +100,19 @@ def admin_add_lab_handler(request):
     except ValueError:
         return HttpResponseRedirect(reverse('PhysicsLab:admin_add_lab'))
     if lab_name and lab_capacity and lab_place:
+        lab = Lab()
+        lab.lab_capacity = lab_capacity
+        lab.lab_place = lab_place
+        lab.lab_name = lab_name
+        lab.save()
         for week in range(1, 17):
-            lab = Lab()
-            lab.lab_name = lab_name
-            lab.week = week
-            lab.lab_capacity = lab_capacity
-            lab.lab_place = lab_place
-            lab.save()
+            lab_week = LabWeek()
+            lab_week.week = week
+            lab_week.lab = lab
+            lab_week.save()
             for i in range(21):
                 lab_item = LabItem()
-                lab_item.lab = lab
+                lab_item.lab_week = lab_week
                 lab_item.is_available = False
                 lab_item.lab_time = (i // 3 + 1) * 10 + i % 3 + 1
                 lab_item.save()
@@ -123,7 +126,7 @@ def admin_modify_lab(request):
         week = int(request.GET.get('week', 0))
     except ValueError:
         week = 0
-    lab_list = Lab.objects.filter(week=week).order_by('pk')
+    lab_list = LabWeek.objects.filter(week=week).order_by('pk')
     return render(request, 'admin_modify_lab.html', {
         'window_title': '修改第' + str(week) + '周实验',
         'week_list': ['一', '二', '三', '四', '五', '六', '日'],
@@ -141,7 +144,7 @@ def admin_modify_lab_handler(request):
         return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab'))
     modify_list = map(int, request.POST.getlist('course_id'))
     if week:
-        cur_week_lab_item = LabItem.objects.filter(lab__week=int(week))
+        cur_week_lab_item = LabItem.objects.filter(lab_week__week=int(week))
         for i in cur_week_lab_item:
             i.is_available = False
             i.selected_user.clear()
@@ -150,12 +153,12 @@ def admin_modify_lab_handler(request):
             i.remaining_capacity = 0
             i.save()
         for i in modify_list:
-            modify_lab = cur_week_lab_item.get(lab__pk=i / 100, lab_time=i % 100)
+            modify_lab = cur_week_lab_item.get(lab_week__pk=i / 100, lab_time=i % 100)
             modify_lab.is_available = True
             if is_drawn():
-                modify_lab.remaining_capacity = modify_lab.lab.lab_capacity - modify_lab.selected_user.count()
+                modify_lab.remaining_capacity = modify_lab.lab_week.lab.lab_capacity - modify_lab.selected_user.count()
             else:
-                modify_lab.remaining_capacity = modify_lab.lab.lab_capacity
+                modify_lab.remaining_capacity = modify_lab.lab_week.lab.lab_capacity
             modify_lab.save()
     return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab') + '?week=' + str(week))
 
@@ -166,6 +169,7 @@ def admin_remove_lab(request):
     lab_name = request.GET.get('name', '')
     lab_list = []
     if lab_name:
+        # for lab can repeat several times with different weeks, I will only use week 1 for query.
         lab_list = Lab.objects.filter(lab_name__icontains=lab_name)
     return render(request, 'admin_remove_lab.html', {
         'window_title': '删除实验',
@@ -174,13 +178,14 @@ def admin_remove_lab(request):
 
 
 def admin_remove_lab_handler(request):
-    pass
+    if not request.user.has_perm('PhysicsLab:remove_lab'):
+        return HttpResponseRedirect(reverse('PhysicsLab:index'))
 
 
 def query_lab(request, week: int):
     if not request.user.is_authenticated:
         return HttpResponseRedirect(reverse('PhysicsLab:lab_login'))
-    lab_list = Lab.objects.filter(week=week).order_by('pk')
+    lab_list = LabWeek.objects.filter(week=week).order_by('pk')
     selected_lab = 0
     for i in request.user.willing.all():
         selected_lab = i.course_id()
@@ -228,12 +233,12 @@ def select_lab_handler(request):
     lab_id = course_id / 100
     lab_time = course_id % 100
     try:
-        lab = LabItem.objects.get(lab__pk=lab_id, lab_time=lab_time)
+        lab = LabItem.objects.get(lab_week__pk=lab_id, lab_time=lab_time)
     except models.ObjectDoesNotExist:
         lab = None
     if is_drawn():
         # remove waiting list course this week, it removes the user itself.
-        for self_w_user in request.user.waitinglistuser_set.filter(lab_item__lab__week=cur_week):
+        for self_w_user in request.user.waitinglistuser_set.filter(lab_item__lab_week__week=cur_week):
             cur_user_order = self_w_user.order_in_waiting_list
             for w_user in self_w_user.lab_item.waitinglistuser_set.all():
                 if w_user.order_in_waiting_list > cur_user_order:
@@ -242,13 +247,20 @@ def select_lab_handler(request):
             self_w_user.delete()
 
         # remove last course this week
-        for lab_item in request.user.selected.filter(lab__week=cur_week):
-            for w_user in lab_item.waitinglistuser_set.all():
+        for lab_item in request.user.selected.filter(lab_week__week=cur_week):
+            wl_set = lab_item.waitinglistuser_set.all()
+            if not wl_set:
+                lab_item.remaining_capacity += 1
+
+            # have waiting list user, give the course to the queue top
+            for w_user in wl_set:
                 w_user.order_in_waiting_list -= 1
                 w_user.save()
                 if w_user.order_in_waiting_list == 0:
                     lab_item.selected_user.add(w_user.user)
                     w_user.delete()
+            lab_item.selected_user.remove(request.user)
+            lab_item.save()
 
         # select current course
         if lab:
@@ -259,15 +271,17 @@ def select_lab_handler(request):
                 # add to waiting list
                 wl_user = WaitingListUser()
                 wl_user.user = request.user
-                max_wl_order = lab.waitinglistuser_set.aggregate(Max('order_in_waiting_list'))[
-                    'order_in_waiting_list__max']
+
+                # wl is consistent, so just use count.
+                max_wl_order = lab.waitinglistuser_set.count()
                 wl_user.order_in_waiting_list = max_wl_order + 1
                 wl_user.lab_item = lab
                 wl_user.save()
+            lab.save()
         return HttpResponseRedirect(reverse('PhysicsLab:query', args=[cur_week]))
 
     # lab is available
-    for i in request.user.willing.filter(lab__week=cur_week):
+    for i in request.user.willing.filter(lab_week__week=cur_week):
         request.user.willing.remove(i)
     request.user.willing.add(lab)
     request.user.save()
@@ -285,5 +299,5 @@ def draw():
     pass
 
 def is_drawn():
-    drawn = GlobalVariable.objects.get(week=get_current_week()).is_drawn
+    drawn = WeekStatus.objects.get(week=get_current_week()).is_drawn
     return drawn

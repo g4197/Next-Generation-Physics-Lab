@@ -1,6 +1,6 @@
-from PhysicsLab.models import GlobalVariable
+from PhysicsLab.models import WeekStatus
 for i in range(1, 17):
-    v = GlobalVariable()
+    v = WeekStatus()
     v.is_drawn = False
     v.week = i
     v.save()

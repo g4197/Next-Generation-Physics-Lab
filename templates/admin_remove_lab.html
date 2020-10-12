@@ -36,6 +36,11 @@
             const form = document.createElement('form');
             form.method = 'post';
             form.action = '{% url "PhysicsLab:submit_admin_remove" %}';
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrfmiddlewaretoken';
+            csrf.value = '{{ csrf_token }}';
+            form.appendChild(csrf);
             const hiddenField = document.createElement('input');
             hiddenField.type = 'hidden';
             hiddenField.name = 'lab_pk';
@@ -43,7 +48,6 @@
             form.appendChild(hiddenField);
             document.body.appendChild(form);
             form.submit();
-            location.reload();
         }
     </script>
 </body>

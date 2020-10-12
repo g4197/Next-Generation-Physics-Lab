@@ -8,13 +8,16 @@
 </head>
 <body>
     <div class="container-fluid">
+    <br>
+    <h4 class="text-center">灰色表示不可选，如果已抽签，数字代表剩余课容量，未抽签则代表已选人数</h4>
+    <br>
     <form action="{% url 'PhysicsLab:select' %}" method="post">
         {% csrf_token %}
         <table class="table">
             <thead>
             <tr>
                 <th scope="col" colspan="3" rowspan="2"></th>
-                <th class="text-center" scope="col" colspan="21"><h4>选课余额</h4></th>
+                <th class="text-center" scope="col" colspan="21">选课余额</th>
             </tr>
             <tr>
                 {% for i in week_list %}
@@ -33,12 +36,12 @@
             </tr>
             </thead>
             <tbody>
-                {% for lab in lab_list %}
+                {% for lab_week in lab_list %}
                     <tr>
-                        <td>{{ lab.lab_name }}</td>
-                        <td class="text-center">{{ lab.lab_place }}</td>
-                        <td class="text-center">{{ lab.lab_capacity }}</td>
-                        {% for lab_item in lab.labitem_set.all %}
+                        <td>{{ lab_week.lab.lab_name }}</td>
+                        <td class="text-center">{{ lab_week.lab.lab_place }}</td>
+                        <td class="text-center">{{ lab_week.lab.lab_capacity }}</td>
+                        {% for lab_item in lab_week.labitem_set.all %}
                             <td class="text-center">
                                 <input type="radio" class="form-check-input position-static" name="course_id" value="{{ lab_item.course_id }}" id="{{ lab_item.course_id }}"
                                 {% if not lab_item.is_available %}
@@ -48,11 +51,11 @@
                                 >
                             <br>
                                 {% if not lab_item.is_available %}
-                                    <div class="badge badge-pill badge-secondary">剩余0</div>
+                                    <div class="badge badge-pill badge-secondary">0</div>
                                 {% elif is_drawn %}
-                                    <div class="badge badge-pill badge-primary">剩余{{ lab_item.remaining_capacity }}</div>
+                                    <div class="badge badge-pill badge-primary">{{ lab_item.remaining_capacity }}</div>
                                 {% else %}
-                                    <div class="badge badge-pill badge-primary">已选{{ lab_item.willing_user.count}}</div>
+                                    <div class="badge badge-pill badge-primary">{{ lab_item.willing_user.count}}</div>
                                 {% endif %}
                             </td>
                         {% endfor %}
@@ -94,10 +97,10 @@
                     </tr>
                     {% for lab_item in all_selected_lab %}
                         <tr>
-                        <td class="text-center">{{ lab_item.lab.week }}</td>
-                        <td class="text-center">{{ lab_item.lab.lab_name }}</td>
+                        <td class="text-center">{{ lab_item.lab_week.week }}</td>
+                        <td class="text-center">{{ lab_item.lab_week.lab.lab_name }}</td>
                         <td class="text-center">周{{ lab_item.weekday }}{{ lab_item.time }}</td>
-                        <td class="text-center">{{ lab_item.lab.lab_place }}</td>
+                        <td class="text-center">{{ lab_item.lab_week.lab.lab_place }}</td>
                         </tr>
                     {% endfor %}
                     </tbody>
@@ -127,10 +130,10 @@
                     </tr>
                     {% for lab_item in all_willing_lab %}
                         <tr>
-                        <td class="text-center">{{ lab_item.lab.week }}</td>
-                        <td class="text-center">{{ lab_item.lab.lab_name }}</td>
+                        <td class="text-center">{{ lab_item.lab_week.week }}</td>
+                        <td class="text-center">{{ lab_item.lab_week.lab.lab_name }}</td>
                         <td class="text-center">周{{ lab_item.weekday }}{{ lab_item.time }}</td>
-                        <td class="text-center">{{ lab_item.lab.lab_place }}</td>
+                        <td class="text-center">{{ lab_item.lab_week.lab.lab_place }}</td>
                         </tr>
                     {% endfor %}
                     </tbody>
@@ -161,10 +164,10 @@
                     </tr>
                     {% for wl_person in all_wl_lab %}
                         <tr>
-                        <td class="text-center">{{ wl_person.lab_item.lab.week }}</td>
-                        <td class="text-center">{{ wl_person.lab_item.lab.lab_name }}</td>
+                        <td class="text-center">{{ wl_person.lab_item.lab_week.week }}</td>
+                        <td class="text-center">{{ wl_person.lab_item.lab_week.lab.lab_name }}</td>
                         <td class="text-center">周{{ wl_person.lab_item.weekday }}{{ wl_person.lab_item.time }}</td>
-                        <td class="text-center">{{ lab_item.lab.lab_place }}</td>
+                        <td class="text-center">{{ lab_item.lab_week.lab.lab_place }}</td>
                         <td class="text-center">{{ wl_person.order_in_waiting_list }}</td>
                         </tr>
                     {% endfor %}

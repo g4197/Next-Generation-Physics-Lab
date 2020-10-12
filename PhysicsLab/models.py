@@ -4,16 +4,20 @@ from django.contrib.auth.models import User
 # Create your models here.
 
 
-class GlobalVariable(models.Model):
+class WeekStatus(models.Model):
     week = models.IntegerField(default=0)
     is_drawn = models.BooleanField(default=False)
 
 
 class Lab(models.Model):
-    week = models.IntegerField(default=0)
     lab_name = models.CharField(max_length=100)
     lab_place = models.CharField(max_length=30)
     lab_capacity = models.IntegerField(default=0)
+
+
+class LabWeek(models.Model):
+    week = models.IntegerField(default=0)
+    lab = models.ForeignKey(Lab, on_delete=models.CASCADE)
 
 
 class LabItem(models.Model):
@@ -22,10 +26,10 @@ class LabItem(models.Model):
     remaining_capacity = models.IntegerField(default=0)
     willing_user = models.ManyToManyField(User, related_name='willing')
     selected_user = models.ManyToManyField(User, related_name='selected')
-    lab = models.ForeignKey(Lab, on_delete=models.CASCADE)
+    lab_week = models.ForeignKey(LabWeek, on_delete=models.CASCADE)
 
     def course_id(self):
-        return self.lab.pk * 100 + self.lab_time
+        return self.lab_week.pk * 100 + self.lab_time
 
     def weekday(self):
         return self.lab_time // 10

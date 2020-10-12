@@ -48,12 +48,12 @@
             </tr>
             </thead>
             <tbody>
-                {% for lab in lab_list %}
+                {% for lab_week in lab_list %}
                     <tr>
-                        <td>{{ lab.lab_name }}</td>
-                        <td>{{ lab.lab_place }}</td>
-                        <td>{{ lab.lab_capacity }}</td>
-                        {% for lab_item in lab.labitem_set.all %}
+                        <td>{{ lab_week.lab.lab_name }}</td>
+                        <td>{{ lab_week.lab.lab_place }}</td>
+                        <td>{{ lab_week.lab.lab_capacity }}</td>
+                        {% for lab_item in lab_week.labitem_set.all %}
                             <td>
                             <div class="form-check">
                                 <input class="form-check-input position-static" id="{{ lab_item.course_id }}"

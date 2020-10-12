@@ -9,7 +9,13 @@
 <body>
     <div class="container-fluid">
     <br>
-    <h4 class="text-center">灰色表示不可选，如果已抽签，数字代表剩余课容量，未抽签则代表已选人数</h4>
+    <h4 class="text-center">
+    灰色表示不可选，
+        {% if is_drawn %}
+            数字代表剩余课容量
+        {% else %}
+            数字代表已选人数
+        {% endif %}</h4>
     <br>
     <form action="{% url 'PhysicsLab:select' %}" method="post">
         {% csrf_token %}

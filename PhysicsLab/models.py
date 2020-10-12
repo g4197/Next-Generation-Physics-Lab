@@ -1,3 +1,4 @@
+import random
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -43,6 +44,32 @@ class LabItem(models.Model):
         else:
             return '晚上'
 
+    def draw(self):
+        max_capacity = self.lab_week.lab.lab_capacity
+        self.remaining_capacity = max_capacity - self.selected_user.count()
+
+        if self.willing_user.count() <= self.remaining_capacity:
+            # all can select this lab
+            for i in self.willing_user.all():
+                self.selected_user.add(i)
+        else:
+            # randomize and add waiting list
+            willing_range = self.willing_user.count()
+            willing_user_list = self.willing_user.all()
+            random_arr = range(willing_range)
+            random.shuffle(random_arr)
+            capacity = self.remaining_capacity
+            for i in range(capacity):
+                self.selected_user.add(willing_user_list[random_arr[i]])
+            for i in range(capacity + 1, len(random_arr)):
+                wl_user = WaitingListUser()
+                wl_user.lab_item = self
+                wl_user.order_in_waiting_list = i - capacity
+                wl_user.user = willing_user_list[random_arr[i]]
+                wl_user.save()
+        self.willing_user.clear()
+        self.remaining_capacity = max_capacity - self.selected_user.count()
+        return
 
     class Meta:
         ordering = ['lab_time']

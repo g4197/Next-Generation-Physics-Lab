@@ -300,8 +300,20 @@ def get_current_week():
     return (datetime.datetime.now().date() - datetime.date(2020, 9, 14)).days // 7 + 1
 
 
-def draw():
-    pass
+def admin_draw_handler(request):
+    if not request.user.has_perm('PhysicsLab:change_lab'):
+        return HttpResponseRedirect(reverse('PhysicsLab:index'))
+    try:
+        week = int(request.POST.get('week', -1))
+    except ValueError:
+        return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab'))
+    if week != -1:
+        lab = LabWeek.objects.filter(week=week)
+        for lab_week in lab:
+            for item in lab_week.labitem_set:
+                item.draw()
+    return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab' + '?week=week'))
+
 
 def is_drawn():
     drawn = WeekStatus.objects.get(week=get_current_week()).is_drawn

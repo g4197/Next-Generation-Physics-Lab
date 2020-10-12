@@ -1,4 +1,4 @@
-# Fake-Physics-Lab
+# Fake-Physics-Lab(Next Generation PhysicsLab)
 
 ### 简介
 

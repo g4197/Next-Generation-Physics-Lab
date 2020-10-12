@@ -15,6 +15,7 @@ urlpatterns = [
     path('lab_admin/submit_add/', views.admin_add_lab_handler, name='submit_admin_add'),
     path('lab_admin/modify/', views.admin_modify_lab, name='admin_modify_lab'),
     path('lab_admin/submit_modify/', views.admin_modify_lab_handler, name='submit_admin_modify'),
+    path('lab_admin/submit_draw/', views.admin_draw_handler, name='submit_admin_draw'),
     path('lab_admin/remove/', views.admin_remove_lab, name='admin_remove_lab'),
     path('lab_admin/submit_remove/', views.admin_remove_lab_handler, name='submit_admin_remove'),
 ]

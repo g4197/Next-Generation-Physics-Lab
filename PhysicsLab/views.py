@@ -37,8 +37,8 @@ def student_register_handler(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         student_id = int(username)
-    except KeyError:
-        return render_error(request, '您还未登录')
+    except KeyError or ValueError:
+        return render_error(request, '学号或密码输入有误')
 
     # check if exists
     database_user = User.objects.filter(username=username)
@@ -182,7 +182,7 @@ def admin_remove_lab_handler(request):
         return HttpResponseRedirect(reverse('PhysicsLab:index'))
     lab_pk = request.POST.get('lab_pk', -1)
     if lab_pk != -1:
-        lab = Lab.objects.filter(pk=lab_pk)
+        lab = Lab.objects.get(pk=lab_pk)
         lab.delete()
     return HttpResponseRedirect(reverse('PhysicsLab:admin_remove_lab'))
 

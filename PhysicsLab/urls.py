@@ -4,7 +4,7 @@ from . import views
 app_name = 'PhysicsLab'
 urlpatterns = [
     path('', views.index, name='index'),
-    path('query/<int:week>/', views.query_lab, name='query'),
+    path('query/', views.query_lab, name='query'),
     path('register/', views.student_register, name='student_register'),
     path('submit_register', views.student_register_handler, name='submit_student_register'),
     path('login/', views.lab_login, name='lab_login'),

@@ -1,10 +1,10 @@
-# Fake-Physics-Lab(Next Generation PhysicsLab)
+# Next Generation PhysicsLab
 
 ### 简介
 
-* 这是一个假冒物理实验选课系统
+* 这可能是下一代物理实验选课系统
 * 仿照`166.111.214.78`制作
-* 还没做完
+* 基本做完
 
 ### 构建方法
 

@@ -14,7 +14,7 @@ import datetime
 
 def index(request):
     if request.user.is_authenticated:
-        return HttpResponseRedirect(reverse('PhysicsLab:query', args=[get_current_week()]))
+        return HttpResponseRedirect(reverse('PhysicsLab:query') + '?week=' + str(get_current_week()))
     else:
         return HttpResponseRedirect(reverse('PhysicsLab:lab_login'))
 
@@ -72,7 +72,7 @@ def lab_login_handler(request):
     user = authenticate(username=username, password=password)
     if user:
         login(request, user)
-        return HttpResponseRedirect(reverse('PhysicsLab:query', args=[get_current_week()]))
+        return HttpResponseRedirect(reverse('PhysicsLab:query') + '?week=' + str(get_current_week()))
     else:
         return render_error(request, '用户名或密码错误')
 
@@ -145,21 +145,26 @@ def admin_modify_lab_handler(request):
     modify_list = map(int, request.POST.getlist('course_id'))
     if week:
         cur_week_lab_item = LabItem.objects.filter(lab_week__week=int(week))
+        for i in modify_list:
+            modify_lab = cur_week_lab_item.get(lab_week__pk=i / 100, lab_time=i % 100)
+            modify_lab.is_available = True
+            modify_lab.change_available_tag = True
+            modify_lab.save()
+            if is_drawn():
+                modify_lab.remaining_capacity = modify_lab.lab_week.lab.lab_capacity - modify_lab.selected_user.count()
+            else:
+                modify_lab.remaining_capacity = modify_lab.lab_week.lab.lab_capacity
         for i in cur_week_lab_item:
+            if i.change_available_tag:
+                i.change_available_tag = False
+                i.save()
+                continue
             i.is_available = False
             i.selected_user.clear()
             i.willing_user.clear()
             i.waitinglistuser_set.all().delete()
             i.remaining_capacity = 0
             i.save()
-        for i in modify_list:
-            modify_lab = cur_week_lab_item.get(lab_week__pk=i / 100, lab_time=i % 100)
-            modify_lab.is_available = True
-            if is_drawn():
-                modify_lab.remaining_capacity = modify_lab.lab_week.lab.lab_capacity - modify_lab.selected_user.count()
-            else:
-                modify_lab.remaining_capacity = modify_lab.lab_week.lab.lab_capacity
-            modify_lab.save()
     return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab') + '?week=' + str(week))
 
 
@@ -187,16 +192,17 @@ def admin_remove_lab_handler(request):
     return HttpResponseRedirect(reverse('PhysicsLab:admin_remove_lab'))
 
 
-def query_lab(request, week: int):
+def query_lab(request):
     if not request.user.is_authenticated:
         return HttpResponseRedirect(reverse('PhysicsLab:lab_login'))
+    week = request.GET.get('week', 0)
     lab_list = LabWeek.objects.filter(week=week).order_by('pk')
     selected_lab = 0
-    for i in request.user.willing.all():
+    for i in request.user.willing.filter(lab_week__week=week):
         selected_lab = i.course_id()
-    for i in request.user.selected.all():
+    for i in request.user.selected.filter(lab_week__week=week):
         selected_lab = i.course_id()
-    for i in request.user.waitinglistuser_set.all():
+    for i in request.user.waitinglistuser_set.filter(lab_item__lab_week__week=week):
         selected_lab = i.lab_item.course_id()
     all_selected_lab = request.user.selected.all().order_by('lab_time')
     all_willing_lab = request.user.willing.all().order_by('lab_time')
@@ -206,7 +212,8 @@ def query_lab(request, week: int):
         'week_list': ['一', '二', '三', '四', '五', '六', '日'],
         'lab_list': lab_list,
         'selected_lab': selected_lab,
-        'is_drawn': is_drawn(),
+        'week': week,
+        'is_drawn': is_drawn(week),
         'all_selected_lab': all_selected_lab,
         'all_willing_lab': all_willing_lab,
         'all_wl_lab': all_wl_lab,
@@ -231,17 +238,17 @@ def select_lab_handler(request):
         cur_course_id = lab.course_id()
     for lab in request.user.willing.all():
         cur_course_id = lab.course_id()
+    cur_week = request.POST.get('week', 0)
     if cur_course_id == course_id:
-        return HttpResponseRedirect(reverse('PhysicsLab:query', args=[get_current_week()]))
+        return HttpResponseRedirect(reverse('PhysicsLab:query') + '?week=' + str(cur_week))
 
-    cur_week = get_current_week()
-    lab_id = course_id / 100
+    lab_id = course_id // 100
     lab_time = course_id % 100
     try:
         lab = LabItem.objects.get(lab_week__pk=lab_id, lab_time=lab_time)
     except models.ObjectDoesNotExist:
         lab = None
-    if is_drawn():
+    if is_drawn() and cur_week:
         # remove waiting list course this week, it removes the user itself.
         for self_w_user in request.user.waitinglistuser_set.filter(lab_item__lab_week__week=cur_week):
             cur_user_order = self_w_user.order_in_waiting_list
@@ -283,17 +290,18 @@ def select_lab_handler(request):
                 wl_user.lab_item = lab
                 wl_user.save()
             lab.save()
-        return HttpResponseRedirect(reverse('PhysicsLab:query', args=[cur_week]))
+        return HttpResponseRedirect(reverse('PhysicsLab:query') + '?week=' + str(cur_week))
 
     # lab is available
-    for i in request.user.willing.filter(lab_week__week=cur_week):
-        request.user.willing.remove(i)
+    request.user.willing.remove(*request.user.willing.filter(lab_week__week=cur_week))
+    request.user.selected.remove(*request.user.selected.filter(lab_week__week=cur_week))
+    request.user.waitinglistuser_set.filter(lab_item__lab_week__week=cur_week).delete()
     request.user.willing.add(lab)
     request.user.save()
     if course_id != 0:
         lab.willing_user.add(request.user)
         lab.save()
-    return HttpResponseRedirect(reverse('PhysicsLab:query', args=[cur_week]))
+    return HttpResponseRedirect(reverse('PhysicsLab:query') + '?week=' + str(cur_week))
 
 
 def get_current_week():
@@ -304,17 +312,20 @@ def admin_draw_handler(request):
     if not request.user.has_perm('PhysicsLab:change_lab'):
         return HttpResponseRedirect(reverse('PhysicsLab:index'))
     try:
-        week = int(request.POST.get('week', -1))
+        week = int(request.POST.get('week', 0))
     except ValueError:
         return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab'))
-    if week != -1:
+    if week:
+        week_status = WeekStatus.objects.get(week=week)
         lab = LabWeek.objects.filter(week=week)
         for lab_week in lab:
-            for item in lab_week.labitem_set:
+            for item in lab_week.labitem_set.all():
                 item.draw()
-    return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab' + '?week=week'))
+        week_status.is_drawn = True
+        week_status.save()
+    return HttpResponseRedirect(reverse('PhysicsLab:admin_modify_lab') + '?week=' + str(week))
 
 
-def is_drawn():
-    drawn = WeekStatus.objects.get(week=get_current_week()).is_drawn
+def is_drawn(week: int):
+    drawn = WeekStatus.objects.get(week=week).is_drawn
     return drawn

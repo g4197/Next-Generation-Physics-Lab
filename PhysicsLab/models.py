@@ -24,6 +24,7 @@ class LabWeek(models.Model):
 class LabItem(models.Model):
     lab_time = models.IntegerField(default=0)
     is_available = models.BooleanField(default=False)
+    change_available_tag = models.BooleanField(default=False)
     remaining_capacity = models.IntegerField(default=0)
     willing_user = models.ManyToManyField(User, related_name='willing')
     selected_user = models.ManyToManyField(User, related_name='selected')
@@ -47,7 +48,6 @@ class LabItem(models.Model):
     def draw(self):
         max_capacity = self.lab_week.lab.lab_capacity
         self.remaining_capacity = max_capacity - self.selected_user.count()
-
         if self.willing_user.count() <= self.remaining_capacity:
             # all can select this lab
             for i in self.willing_user.all():
@@ -56,19 +56,20 @@ class LabItem(models.Model):
             # randomize and add waiting list
             willing_range = self.willing_user.count()
             willing_user_list = self.willing_user.all()
-            random_arr = range(willing_range)
+            random_arr = [i for i in range(willing_range)]
             random.shuffle(random_arr)
             capacity = self.remaining_capacity
             for i in range(capacity):
                 self.selected_user.add(willing_user_list[random_arr[i]])
-            for i in range(capacity + 1, len(random_arr)):
+            for i in range(capacity, len(random_arr)):
                 wl_user = WaitingListUser()
                 wl_user.lab_item = self
-                wl_user.order_in_waiting_list = i - capacity
+                wl_user.order_in_waiting_list = i - capacity + 1
                 wl_user.user = willing_user_list[random_arr[i]]
                 wl_user.save()
         self.willing_user.clear()
         self.remaining_capacity = max_capacity - self.selected_user.count()
+        self.save()
         return
 
     class Meta:

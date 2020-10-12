@@ -49,7 +49,8 @@
                         <td class="text-center">{{ lab_week.lab.lab_capacity }}</td>
                         {% for lab_item in lab_week.labitem_set.all %}
                             <td class="text-center">
-                                <input type="radio" class="form-check-input position-static" name="course_id" value="{{ lab_item.course_id }}" id="{{ lab_item.course_id }}"
+                                <input type="radio" class="form-check-input position-static"
+                                       name="course_id" value="{{ lab_item.course_id }}" id="{{ lab_item.course_id }}"
                                 {% if not lab_item.is_available %}
                                        disabled
                                 {% endif %}
@@ -79,7 +80,9 @@
             </td>
         </tr></tfoot>
         </table>
+        <input type="hidden" name="week" value="{{ week }}">
         <br><br>
+    </form>
     <div class="accordion" id="course-accordion">
         <div class="card">
             <div class="card-header" id="selected-course-header">
@@ -183,7 +186,6 @@
             </div>
         </div>
     </div>
-    </form>
     </div>
 </body>
 </html>

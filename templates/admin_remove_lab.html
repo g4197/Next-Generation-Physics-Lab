@@ -21,8 +21,8 @@
         </div>
     </form>
     {% if lab_list %}
-        <h4>点击按钮即可删除实验</h4>
-        <h3 class="text-center">符合条件的实验为</h3>
+        <h5 class="text-center">点击按钮即可删除实验</h5>
+        <h4 class="text-center">符合条件的实验为</h4>
         <div class="list-group">
             {% for lab in lab_list %}
                 <button type="button" onclick="removeLab({{ lab.pk }})" class="list-group-item list-group-item-action">

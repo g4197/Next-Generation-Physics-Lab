@@ -180,6 +180,11 @@ def admin_remove_lab(request):
 def admin_remove_lab_handler(request):
     if not request.user.has_perm('PhysicsLab:remove_lab'):
         return HttpResponseRedirect(reverse('PhysicsLab:index'))
+    lab_pk = request.POST.get('lab_pk', -1)
+    if lab_pk != -1:
+        lab = Lab.objects.filter(pk=lab_pk)
+        lab.delete()
+    return HttpResponseRedirect(reverse('PhysicsLab:admin_remove_lab'))
 
 
 def query_lab(request, week: int):
